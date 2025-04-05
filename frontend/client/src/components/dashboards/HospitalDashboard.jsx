@@ -8,6 +8,7 @@ const HospitalDashboard = () => {
   const authData = useSelector((state) => state.auth);
   const currentHospitalId = authData?.details?.data?.hospital_id || "HOSP001";
   const [alerts, setAlerts] = useState([]);
+  const [requests, setRequests] = useState([]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -15,30 +16,46 @@ const HospitalDashboard = () => {
     window.location.href = "/login";
   };
 
-  const requests = [
-    { ambulanceId: "AMB001", patientId: "PAT123", flag: true, eta: "10 mins", hospitalId: "H003" },
-    { ambulanceId: "AMB002", patientId: "PAT456", flag: false, eta: "Arrived", hospitalId: "H003" },
-    { ambulanceId: "AMB003", patientId: "PAT789", flag: true, eta: "15 mins", hospitalId: "HOSP002" }
-  ];
+  const fetchAlerts = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/alerts/all?hospital_id=${currentHospitalId}`);
+      setAlerts(res.data.reverse());
+    } catch (err) {
+      console.error("Failed to fetch alerts", err);
+    }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/requests/hospital/${currentHospitalId}`);
+      setRequests(res.data);
+    } catch (err) {
+      console.error("Failed to fetch requests", err);
+    }
+  };
+
+  const handleReceived = async (requestId, ambulanceId, patientId) => {
+    try {
+      await axios.post("http://localhost:5000/requests/mark-received", {
+        request_id: requestId,
+        ambulance_id: ambulanceId,
+        patient_id: patientId
+      });
+      fetchRequests(); // Refresh list
+    } catch (err) {
+      console.error("Failed to mark received", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5000/alerts/all?hospital_id=${currentHospitalId}`);
-        setAlerts(res.data.reverse());
-      } catch (err) {
-        console.error("Failed to fetch alerts", err);
-      }
-    };
-
     fetchAlerts();
-
-    const interval = setInterval(fetchAlerts, 5000);
-
+    fetchRequests();
+    const interval = setInterval(() => {
+      fetchAlerts();
+      fetchRequests();
+    }, 5000);
     return () => clearInterval(interval);
   }, [currentHospitalId]);
-
-  const filteredRequests = requests.filter(req => req.hospitalId === currentHospitalId);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -56,17 +73,20 @@ const HospitalDashboard = () => {
         {/* Requests */}
         <div className="bg-white shadow-md rounded-lg p-4">
           <h2 className="text-xl font-semibold mb-3">🚑 Ambulance Requests</h2>
-          {filteredRequests.length > 0 ? (
-            filteredRequests.map((req, index) => (
-              <div key={index} className="border-b p-3 flex justify-between">
+          {requests.length > 0 ? (
+            requests.map((req, index) => (
+              <div key={index} className="border-b p-3 flex justify-between items-center">
                 <div>
-                  <p><strong>Ambulance ID:</strong> {req.ambulanceId}</p>
-                  <p><strong>Patient ID:</strong> {req.patientId}</p>
-                  <p><strong>ETA:</strong> {req.eta}</p>
+                  <p><strong>Ambulance ID:</strong> {req.ambulance_id}</p>
+                  <p><strong>Patient ID:</strong> {req.patient_id}</p>
+                  <p><strong>ETA:</strong> {req.eta || "In Transit"}</p>
                 </div>
-                <p className={`font-semibold ${req.flag ? "text-red-500" : "text-green-500"}`}>
-                  {req.flag ? "In Transit" : "Arrived"}
-                </p>
+                <button
+                  onClick={() => handleReceived(req._id, req.ambulance_id, req.patient_id)}
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                >
+                  Received
+                </button>
               </div>
             ))
           ) : (
