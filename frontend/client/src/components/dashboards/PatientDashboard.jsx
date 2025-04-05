@@ -1,4 +1,10 @@
+import PatientPage from "../PatientPage";
+import { useSelector } from "react-redux";
+
 export default function PatientDashboard() {
-    return <h2>🧍‍♂️ Welcome to Patient Dashboard</h2>;
+  const { isAuthenticated, details, role } = useSelector((state) => state.auth);
+    return( <>
+    <PatientPage/>
+    </>);
   }
   
