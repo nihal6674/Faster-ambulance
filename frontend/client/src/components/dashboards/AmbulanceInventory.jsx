@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem } from "../../api/InventoryApi";
 import { BrowserMultiFormatReader } from "@zxing/library";
 import { useSelector } from "react-redux";
+import axios from "axios";
 
 
 
@@ -10,7 +11,7 @@ const AmbulanceInventory = () => {
     const { isAuthenticated, details, role } = useSelector((state) => state.auth);
 
     // assuming `ambulanceId` is stored as `userId` for now, or adjust as per your backend
-    console.log("details::",details.data);
+    
     
     const ambulanceId=details.data.ambulance_id;
     console.log(ambulanceId)
@@ -22,6 +23,32 @@ const AmbulanceInventory = () => {
     // Modal state
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+
+
+    const [ambulanceType, setAmbulanceType] = useState(null);
+  console.log("ambulance_ID::",details.data.ambulance_id);
+ 
+  const fetchType = async () => {
+    if (details?.data?.ambulance_id) {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/ambulance/inventory?ambulance_id=${details.data.ambulance_id}`
+        );
+        console.log("res::", res);
+        setAmbulanceType(res.data.ambulance_type);
+      } catch (err) {
+        console.error("Error fetching ambulance type", err);
+        setAmbulanceType("unknown");
+      }
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchType();
+  }, []);
+  
+
 
     useEffect(() => {
         if (ambulanceId) {
@@ -123,12 +150,75 @@ const AmbulanceInventory = () => {
             setIsScanning(false);
         });
     };
+
+
+    const deleteQRScanner = () => {
+        setIsScanning(true);
+        const codeReader = new BrowserMultiFormatReader();
+    
+        codeReader.getVideoInputDevices().then((videoDevices) => {
+            if (videoDevices.length > 0) {
+                codeReader.decodeFromVideoDevice(videoDevices[0].deviceId, "qr-video", async (result, err) => {
+                    if (result) {
+                        codeReader.reset(); // Stop scanning immediately
+    
+                        try {
+                            const scannedData = JSON.parse(result.text);
+                            const { id } = scannedData;
+                            console.log("ScannedData",scannedData);
+                            if (!ambulanceId || !id) {
+                                setMessage("❌ QR code missing ambulanceId or itemId.");
+                                setIsScanning(false);
+                                return;
+                            }
+    
+                            const response = await deleteInventoryItem(ambulanceId, id);
+    
+                            if (!response.error) {
+                                setMessage(`✅ Item ${id} deleted from ambulance ${ambulanceId}`);
+                                fetchInventory();  // Refresh inventory
+                            } else {
+                                setMessage(`❌ ${response.error}`);
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            setMessage("❌ Invalid QR Code format.");
+                        }
+    
+                        setIsScanning(false);
+                    }
+                });
+            } else {
+                setMessage("❌ No camera found.");
+                setIsScanning(false);
+            }
+        }).catch(() => {
+            setMessage("❌ Camera access denied.");
+            setIsScanning(false);
+        });
+    };
     
 
 
     return (
         <div className="flex flex-col items-center p-6 bg-gray-100 min-h-screen">
             <h2 className="text-2xl font-bold mb-4">🚑 Ambulance Inventory</h2>
+
+            <button
+  onClick={fetchType}
+  className="mb-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-all"
+>
+  🔄 Update Status
+</button>
+
+{details?.data?.ambulance_id && ambulanceType && (
+        <h2 className="text-xl font-semibold text-center mb-4">
+          Ambulance ID: <span className="text-blue-600">{details.data.ambulance_id}</span> | Type:{" "}
+          <span className={ambulanceType === "critical" ? "text-red-600" : "text-green-600"}>
+            {ambulanceType.toUpperCase()}
+          </span>
+        </h2>
+      )}
 
             {message && (
                 <p className={`text-center mb-4 text-sm font-medium p-2 rounded-lg ${message.includes("✅") ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}`}>
@@ -150,6 +240,7 @@ const AmbulanceInventory = () => {
                 <button onClick={handleAddItem} className="mt-3 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-all">Add Item</button>
 
                 <button onClick={startQRScanner} className="mt-3 w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-all">Scan QR Code</button>
+                <button onClick={deleteQRScanner} className="mt-3 w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-all">Delete Items</button>
 
 
             </div>
