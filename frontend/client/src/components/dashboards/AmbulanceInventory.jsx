@@ -44,9 +44,6 @@ const AmbulanceInventory = () => {
   };
   
 
-  useEffect(() => {
-    fetchType();
-  }, []);
   
 
 
@@ -58,6 +55,7 @@ const AmbulanceInventory = () => {
 
     const fetchInventory = async () => {
         const response = await getInventory(ambulanceId);
+        fetchType();
         if (!response.error) {
             setInventory(response.items || []);
         } else {
@@ -206,12 +204,7 @@ const AmbulanceInventory = () => {
         <div className="flex flex-col items-center p-6 bg-gray-100 min-h-screen">
             <h2 className="text-2xl font-bold mb-4">🚑 Ambulance Inventory</h2>
 
-            <button
-  onClick={fetchType}
-  className="mb-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-all"
->
-  🔄 Update Status
-</button>
+            
 
 {details?.data?.ambulance_id && ambulanceType && (
         <h2 className="text-xl font-semibold text-center mb-4">
@@ -230,7 +223,7 @@ const AmbulanceInventory = () => {
 
             {/* Add Item Section */}
             <div className="bg-white p-4 rounded-lg shadow-md mb-6 w-full max-w-lg">
-                <h3 className="text-lg font-semibold mb-2">Add New Item</h3>
+                <h3 className="text-lg font-semibold mb-2">Resources Management </h3>
                 <div className="grid grid-cols-2 gap-3">
                     <input type="text" name="id" placeholder="Item ID" value={newItem.id} onChange={handleInputChange} className="p-2 border rounded" />
                     <input type="text" name="rfid_id" placeholder="RFID ID (optional)" value={newItem.rfid_id} onChange={handleInputChange} className="p-2 border rounded" />
@@ -239,10 +232,10 @@ const AmbulanceInventory = () => {
                     <input type="text" name="type" placeholder="Item Type" value={newItem.type} onChange={handleInputChange} className="p-2 border rounded" />
                     <input type="number" name="quantity" placeholder="Quantity" value={newItem.quantity} onChange={handleInputChange} className="p-2 border rounded" />
                 </div>
-                <button onClick={handleAddItem} className="mt-3 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-all">Add Item</button>
+                <button onClick={handleAddItem} className="mt-3 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-all">Add Item  </button>
 
-                <button onClick={startQRScanner} className="mt-3 w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-all">Scan QR Code</button>
-                <button onClick={deleteQRScanner} className="mt-3 w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-all">Delete Items</button>
+                <button onClick={startQRScanner} className="mt-3 w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-all">Add through QR</button>
+                <button onClick={deleteQRScanner} className="mt-3 w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 transition-all">Delete through QR Items</button>
 
 
             </div>

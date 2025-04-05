@@ -129,3 +129,24 @@ def login_patient():
 
 def logout_patient():
     return jsonify({"success": True, "message": "Logged out successfully!"}), 200
+
+def update_location():
+    try:
+        data = request.get_json()
+        patient_id = data.get('patient_id')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        # Validation
+        if not patient_id or latitude is None or longitude is None:
+            return jsonify({'error': 'patient_id, latitude, and longitude are required'}), 400
+
+        # Call the model function to update location
+        result = Patient.update_location_by_patient_id(patient_id, latitude, longitude)
+
+        # Return result
+        return jsonify(result), (200 if "message" in result else 404)
+
+    except Exception as e:
+        logging.error(f'Location update error: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to update location'}), 500

@@ -12,17 +12,60 @@ export default function PatientPage() {
     const [showPatientInfo, setShowPatientInfo] = useState(false);
 
     const { isAuthenticated, details, role } = useSelector((state) => state.auth);
-    const recognitionRef = useRef(null);
 
+    const sendLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    
+                    const payload = {
+                        patient_id: details?.data?.patient_id || "P010",
+                        latitude,
+                        longitude
+                    };
+                    console.log("thisis the payload::",payload);
+                    try {
+                        const res = await fetch("http://127.0.0.1:5000/api/patient/location", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(payload),
+                        });
+    
+                        const data = await res.json();
+                        console.log("📍 Location sent:", data);
+                    } catch (error) {
+                        console.error("❌ Error sending location:", error);
+                    }
+                },
+                (error) => {
+                    console.error("❌ Geolocation error:", error.message);
+                }
+            );
+        } else {
+            console.warn("⚠️ Geolocation not supported.");
+        }
+    };
+    
+    
+    console.log(details.data);
+    const recognitionRef = useRef(null);
     function getSafeMarkdown(text) {
         if (!text || typeof text !== "string") return "**Bot:** ...";
+
+        // Replace double asterisks with valid Markdown bold formatting
         let safeText = text
-            .replace(/\r?\n/g, "  \n")
-            .replace(/\*\*(?![\w\s])/g, "")
-            .replace(/(?<![\w\s])\*\*/g, "")
-            .replace(/\*/g, "\\*");
+            .replace(/\r?\n/g, "  \n")              // newline fix for markdown
+            .replace(/\*\*(?![\w\s])/g, "")         // remove malformed bold openers
+            .replace(/(?<![\w\s])\*\*/g, "")        // remove malformed bold closers
+            .replace(/\*/g, "\\*")                  // escape any remaining rogue asterisks
+
         return `**Bot:** ${safeText}`;
     }
+
 
     const startRecording = () => {
         try {
@@ -55,39 +98,10 @@ export default function PatientPage() {
             setIsRecording(false);
         }
     };
-    const allocateResources = async (type) => {
-        try {
-            const payload = {
-                name: details?.data?.name,
-                email: details?.data?.email,
-                latitude: details?.data?.latitude,
-                longitude: details?.data?.longitude,
-                type,
-                patient_id: details?.data?.patient_id,
-            };
-            console.log('payload: ',payload);
-
-            const res = await fetch("http://localhost:5000/api/allocate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.message || "Allocation failed");
-
-            console.log("✅ Allocation successful:");
-            console.log("Ambulance ID:", data.ambulance_id);
-            console.log("Hospital ID:", data.hospital_id);
-            console.log("ETA (minutes):", data.eta);
-        } catch (err) {
-            console.error("❌ Allocation Error:", err.message);
-        }
-    };
 
     const handleAnalysis = async (text) => {
         try {
+            // Add temporary loading state
             const loadingId = Date.now();
             setChats((prevChats) => [
                 ...prevChats,
@@ -105,7 +119,7 @@ export default function PatientPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text }),
             });
-
+            console.log(classificationRes);
             if (!classificationRes.ok) throw new Error("Classification API failed");
 
             const chatRes = await fetch("http://127.0.0.1:5000/api/patient/chat", {
@@ -120,11 +134,10 @@ export default function PatientPage() {
             const chatResponse = await chatRes.json();
 
             const botMessage = chatResponse.response;
-            const firstWord = classification.category.toLowerCase();
-            const type = firstWord.startsWith("c") ? "critical" : "non-critical";
+            const firstWord = botMessage.trim().split(" ")[0].toLowerCase();
+            const type = firstWord === "critical" ? "critical" : "non-critical";
 
-            await allocateResources(type);
-
+            // Update the chat with actual response
             setChats((prevChats) =>
                 prevChats.map((chat) =>
                     chat.id === loadingId
@@ -167,6 +180,7 @@ export default function PatientPage() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
+            {/* Your Info Button */}
             <button
                 onClick={() => setShowPatientInfo(!showPatientInfo)}
                 className="absolute top-4 left-4 bg-blue-500 text-white px-4 py-2 rounded shadow-md hover:bg-blue-600 transition z-50"
@@ -174,14 +188,15 @@ export default function PatientPage() {
                 Your Info
             </button>
 
+            {/* Patient Info Box */}
             {showPatientInfo && details && (
                 <div className="absolute top-20 left-4 bg-white border border-gray-300 rounded-lg p-4 shadow-lg z-50">
                     <h2 className="text-lg font-semibold mb-2">Patient Info</h2>
                     <p><strong>Name:</strong> {details.data.name}</p>
-                    <p><strong>Email:</strong> {details.data.email}</p>
                     <p><strong>Latitude:</strong> {details.data.latitude}</p>
                     <p><strong>Longitude:</strong> {details.data.longitude}</p>
-                    <p><strong>BloodGroup:</strong> {details.data.bloodGroup}</p>
+                    <p><strong>BloodGroup:</strong> {details.data.blood_group}</p>
+
                     <button
                         onClick={() => setShowPatientInfo(false)}
                         className="mt-3 text-sm text-red-500 hover:underline"
@@ -191,11 +206,19 @@ export default function PatientPage() {
                 </div>
             )}
 
+            {/* Emergency Button & Stop Recording */}
             <div className="flex gap-4">
                 <button
-                    onClick={startRecording}
+                    onClick={()=>{
+                        startRecording();
+                        sendLocation();
+                    }
+                    }
                     disabled={isRecording}
-                    className={`${isRecording ? "bg-red-600" : "bg-red-500"} text-white rounded-full p-6 text-lg font-bold hover:bg-red-600 transition-all duration-300 w-40 h-40 flex items-center justify-center shadow-xl hover:shadow-2xl`}
+                    className={`${isRecording ? "bg-red-600" : "bg-red-500"
+                        } text-white rounded-full p-6 text-lg font-bold 
+          hover:bg-red-600 transition-all duration-300 w-40 h-40 
+          flex items-center justify-center shadow-xl hover:shadow-2xl`}
                 >
                     {isRecording ? "Recording..." : "EMERGENCY"}
                 </button>
@@ -203,13 +226,16 @@ export default function PatientPage() {
                 {isRecording && (
                     <button
                         onClick={stopRecording}
-                        className="bg-gray-700 text-white rounded-full p-4 text-lg font-bold hover:bg-gray-800 transition-all duration-300 w-40 h-40 flex items-center justify-center shadow-xl hover:shadow-2xl"
+                        className="bg-gray-700 text-white rounded-full p-4 text-lg 
+            font-bold hover:bg-gray-800 transition-all duration-300 
+            w-40 h-40 flex items-center justify-center shadow-xl hover:shadow-2xl"
                     >
                         STOP
                     </button>
                 )}
             </div>
 
+            {/* Text Input Box */}
             <div className="mt-6 w-full max-w-lg">
                 <input
                     type="text"
@@ -221,6 +247,8 @@ export default function PatientPage() {
                 <button
                     onClick={() => {
                         handleAnalysis(manualInput);
+                        sendLocation(); // Live lat/long here
+
                         setManualInput("");
                     }}
                     className="mt-2 w-full bg-blue-500 text-white font-bold py-2 rounded-md hover:bg-blue-600 transition"
@@ -229,6 +257,7 @@ export default function PatientPage() {
                 </button>
             </div>
 
+            {/* Chatbot Window */}
             {showChat && (
                 <div className="fixed bottom-4 right-4 w-[500px] max-h-[600px] bg-white border border-gray-300 shadow-lg rounded-lg overflow-hidden">
                     <div className="p-4 border-b flex justify-between items-center bg-gray-200">
@@ -258,11 +287,15 @@ export default function PatientPage() {
                                                     ? "CRITICAL - Dispatching ambulance!"
                                                     : "Non-critical assistance"}
                                             </p>
+
                                             <div className="mt-1 prose prose-sm max-w-full">
                                                 <ReactMarkdown>
                                                     {`**Bot:** ${chat.bot || " "}`}
                                                 </ReactMarkdown>
                                             </div>
+
+
+
                                         </>
                                     )}
                                 </div>
@@ -272,18 +305,20 @@ export default function PatientPage() {
                 </div>
             )}
 
+            {/* Loading bar animation style */}
             <style>
                 {`
-                    @keyframes loading-bar {
-                        0% { left: -25%; }
-                        50% { left: 50%; }
-                        100% { left: 100%; }
-                    }
-                    .animate-loading-bar {
-                        animation: loading-bar 1.5s ease-in-out infinite;
-                    }
-                `}
+    @keyframes loading-bar {
+      0% { left: -25%; }
+      50% { left: 50%; }
+      100% { left: 100%; }
+    }
+    .animate-loading-bar {
+      animation: loading-bar 1.5s ease-in-out infinite;
+    }
+  `}
             </style>
+
         </div>
     );
 }

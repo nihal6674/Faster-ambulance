@@ -48,3 +48,19 @@ class Patient:
             last_id = int(last["patient_id"][1:])
             return f"P{last_id + 1:03d}"
         return "P001"
+
+    
+    @staticmethod
+    def update_location_by_patient_id(patient_id, latitude, longitude):
+        if not patient_id or latitude is None or longitude is None:
+            return {"error": "patient_id, latitude, and longitude are required"}
+
+        patient = db.patients.find_one({"patient_id": patient_id})
+        if not patient:
+            return {"error": "Patient not found"}
+
+        db.patients.update_one(
+            {"patient_id": patient_id},
+            {"$set":  {"latitude": latitude, "longitude": longitude}}
+        )
+        return {"message": "Location updated successfully"}
