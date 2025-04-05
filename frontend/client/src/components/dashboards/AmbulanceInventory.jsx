@@ -126,7 +126,9 @@ const AmbulanceInventory = () => {
                         
                         try {
                             const scannedData = JSON.parse(result.text);
-                            const response = await addInventoryItem(ambulanceId, { ...scannedData, quantity: parseInt(scannedData.quantity) });
+                            console.log("ScannedData",scannedData);
+                            
+                            const response = await addInventoryItem(ambulanceId, { ...scannedData, quantity: 1 });
     
                             if (!response.error) {
                                 setMessage("✅ QR code scanned and item added successfully!");

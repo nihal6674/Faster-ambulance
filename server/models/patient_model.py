@@ -14,6 +14,7 @@ class Patient:
         if patient_collection.find_one({"email": data["email"]}):
             return {"error": "Email already registered"}
 
+        data["patient_id"] = Patient.generate_patient_id()
         data["password"] = generate_password_hash(data["password"])
         patient_collection.insert_one(data)
 
@@ -33,6 +34,17 @@ class Patient:
                     "role": "patient",
                     "latitude":patient["latitude"],
                     "longitude":patient["longitude"],
+                    "blood_group":patient["blood_group"],
+                    "patient_id":patient["patient_id"]
+                    
                 }
             }
         return {"error": "Invalid email or password"}
+    
+    @staticmethod
+    def generate_patient_id():
+        last = patient_collection.find_one(sort=[("patient_id", -1)])
+        if last and "patient_id" in last:
+            last_id = int(last["patient_id"][1:])
+            return f"P{last_id + 1:03d}"
+        return "P001"

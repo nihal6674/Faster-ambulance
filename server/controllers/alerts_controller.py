@@ -2,8 +2,8 @@ from flask import request, jsonify
 from models.alerts_model import alerts_collection
 from bson import ObjectId
 
-def create_alert():
-    data = request.json
+def create_alert(data):
+    
 
     alert = {
         "ambulance_id": data["ambulance_id"],

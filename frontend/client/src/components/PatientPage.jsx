@@ -12,6 +12,9 @@ export default function PatientPage() {
     const [showPatientInfo, setShowPatientInfo] = useState(false);
 
     const { isAuthenticated, details, role } = useSelector((state) => state.auth);
+
+
+    console.log(details.data);
     const recognitionRef = useRef(null);
     function getSafeMarkdown(text) {
         if (!text || typeof text !== "string") return "**Bot:** ...";
@@ -155,7 +158,7 @@ export default function PatientPage() {
                     <p><strong>Name:</strong> {details.data.name}</p>
                     <p><strong>Latitude:</strong> {details.data.latitude}</p>
                     <p><strong>Longitude:</strong> {details.data.longitude}</p>
-                    <p><strong>BloodGroup:</strong> {details.data.bloodGroup}</p>
+                    <p><strong>BloodGroup:</strong> {details.data.blood_group}</p>
 
                     <button
                         onClick={() => setShowPatientInfo(false)}
