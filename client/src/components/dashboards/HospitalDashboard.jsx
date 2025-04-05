@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
 import axios from "axios";
+import { useSelector } from "react-redux";
 
 const socket = io("http://localhost:5000");
 
 const HospitalDashboard = () => {
-  const currentHospitalId = "HOSP001";
+  const authData = useSelector((state) => state.auth);
+  console.log(authData);
+  const currentHospitalId = authData?.details?.data?.hospital_id || "HOSP001";
   const [alerts, setAlerts] = useState([]);
 
+  console.log(currentHospitalId);
+
   const requests = [
-    { ambulanceId: "AMB001", patientId: "PAT123", flag: true, eta: "10 mins", hospitalId: "HOSP001" },
-    { ambulanceId: "AMB002", patientId: "PAT456", flag: false, eta: "Arrived", hospitalId: "HOSP001" },
+    { ambulanceId: "AMB001", patientId: "PAT123", flag: true, eta: "10 mins", hospitalId: "H003" },
+    { ambulanceId: "AMB002", patientId: "PAT456", flag: false, eta: "Arrived", hospitalId: "H003" },
     { ambulanceId: "AMB003", patientId: "PAT789", flag: true, eta: "15 mins", hospitalId: "HOSP002" }
   ];
 
