@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import io from "socket.io-client";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../../redux/authSlice";
-
-const socket = io("http://localhost:5000");
 
 const HospitalDashboard = () => {
   const dispatch = useDispatch();
@@ -12,11 +9,10 @@ const HospitalDashboard = () => {
   const currentHospitalId = authData?.details?.data?.hospital_id || "HOSP001";
   const [alerts, setAlerts] = useState([]);
 
-  // ✅ Logout handler
   const handleLogout = () => {
     dispatch(logout());
-    localStorage.clear(); // Clear redux-persist or other storage if used
-    window.location.href = "/login"; // Redirect
+    localStorage.clear();
+    window.location.href = "/login";
   };
 
   const requests = [
@@ -37,16 +33,10 @@ const HospitalDashboard = () => {
 
     fetchAlerts();
 
-    socket.on("receive_alert", (alert) => {
-      if (alert.hospital_id === currentHospitalId) {
-        setAlerts((prev) => [alert, ...prev]);
-      }
-    });
+    const interval = setInterval(fetchAlerts, 5000);
 
-    return () => {
-      socket.off("receive_alert");
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [currentHospitalId]);
 
   const filteredRequests = requests.filter(req => req.hospitalId === currentHospitalId);
 
