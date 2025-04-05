@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
 import ReactMarkdown from "react-markdown";
 
@@ -10,8 +10,28 @@ export default function PatientPage() {
     const [chats, setChats] = useState([]);
     const [patientDetails, setPatientDetails] = useState([]);
     const [showPatientInfo, setShowPatientInfo] = useState(false);
+    const [allocationInfo, setAllocationInfo] = useState(null);
 
     const { isAuthenticated, details, role } = useSelector((state) => state.auth);
+
+    useEffect(() => {
+        const fetchAllocation = async () => {
+            try {
+                const res = await fetch(
+                    `http://127.0.0.1:5000/api/patient/allocation?patient_id=${details?.data?.patient_id}`
+                );
+                const data = await res.json();
+                console.log("🎯 Allocation Info:", data);
+                if (data.allocated) setAllocationInfo(data);
+            } catch (err) {
+                console.error("Error fetching allocation info", err);
+            }
+        };
+
+        if (details?.data?.patient_id) {
+            fetchAllocation();
+        }
+    }, [details]);
 
     const sendLocation = () => {
         if (navigator.geolocation) {
@@ -19,13 +39,13 @@ export default function PatientPage() {
                 async (position) => {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
-                    
+
                     const payload = {
                         patient_id: details?.data?.patient_id || "P010",
                         latitude,
                         longitude
                     };
-                    console.log("thisis the payload::",payload);
+                    console.log("thisis the payload::", payload);
                     try {
                         const res = await fetch("http://127.0.0.1:5000/api/patient/location", {
                             method: "POST",
@@ -34,7 +54,7 @@ export default function PatientPage() {
                             },
                             body: JSON.stringify(payload),
                         });
-    
+
                         const data = await res.json();
                         console.log("📍 Location sent:", data);
                     } catch (error) {
@@ -49,8 +69,8 @@ export default function PatientPage() {
             console.warn("⚠️ Geolocation not supported.");
         }
     };
-    
-    
+
+
     console.log(details.data);
     const recognitionRef = useRef(null);
     function getSafeMarkdown(text) {
@@ -188,6 +208,27 @@ export default function PatientPage() {
                 Your Info
             </button>
 
+            {allocationInfo && (
+                <div className="mt-6 p-4 border border-gray-300 rounded-md bg-white shadow-lg w-full max-w-lg">
+                    <h3 className="text-xl font-bold mb-2 text-blue-600">🚑 Allocation Details</h3>
+
+                    <div className="mb-2">
+                        <h4 className="font-semibold">Hospital:</h4>
+                        <p><strong>Name:</strong> {allocationInfo.hospital.name}</p>
+                        <p><strong>Location:</strong> {allocationInfo.hospital.location}</p>
+                        <p><strong>Type:</strong> {allocationInfo.hospital.type}</p>
+                    </div>
+
+                    <div>
+                        <h4 className="font-semibold">Ambulance:</h4>
+                        <p><strong>Code:</strong> {allocationInfo.ambulance.code}</p>
+                        <p><strong>Driver:</strong> {allocationInfo.ambulance.driver_name}</p>
+                        <p><strong>Number Plate:</strong> {allocationInfo.ambulance.number_plate}</p>
+                        <p><strong>Type:</strong> {allocationInfo.ambulance.type}</p>
+                    </div>
+                </div>
+            )}
+
             {/* Patient Info Box */}
             {showPatientInfo && details && (
                 <div className="absolute top-20 left-4 bg-white border border-gray-300 rounded-lg p-4 shadow-lg z-50">
@@ -209,7 +250,7 @@ export default function PatientPage() {
             {/* Emergency Button & Stop Recording */}
             <div className="flex gap-4">
                 <button
-                    onClick={()=>{
+                    onClick={() => {
                         startRecording();
                         sendLocation();
                     }

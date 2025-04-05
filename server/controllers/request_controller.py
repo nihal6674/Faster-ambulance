@@ -22,6 +22,40 @@ def get_request_by_ambulance():
     request_doc["_id"] = str(request_doc["_id"])
     return jsonify({"status": "busy", "data": request_doc}), 200
 
+def get_patient_allocation():
+    try:
+        data = request.args
+        patient_id = data.get("patient_id")
+
+        if not patient_id:
+            return jsonify({"error": "patient_id is required"}), 400
+
+        allocation = request_collection.find_one({"patient_id": patient_id})
+        if not allocation:
+            return jsonify({"allocated": False}), 200
+
+        hospital = hospital_collection.find_one({"_id": allocation["hospital_id"]}, {"password": 0})
+        ambulance = ambulance_collection.find_one({"_id": allocation["ambulance_id"]}, {"password": 0})
+
+        response = {
+            "allocated": True,
+            "hospital": {
+                "name": hospital["name"],
+                "location": hospital["location"],
+                "type": hospital["type"]
+            },
+            "ambulance": {
+                "code": ambulance["code"],
+                "driver_name": ambulance["driver_name"],
+                "number_plate": ambulance["number_plate"],
+                "type": ambulance["type"]
+            }
+        }
+
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def mark_request_received():
     data = request.json
     request_id = data.get("request_id")
