@@ -2,8 +2,8 @@ from flask import request, jsonify
 from models.ambulance_model import ambulance_collection
 from models.hospital_model import hospital_collection
 from models.request_model import requests_collection
+from models.patient_model import patient_collection
 import openrouteservice
-from bson import ObjectId
 from dotenv import load_dotenv
 import os
 
@@ -19,16 +19,27 @@ def get_eta(coord1, coord2):
             profile='driving-car',
             format='geojson'
         )
-        return routes['features'][0]['properties']['summary']['duration']  # duration in seconds
+        return routes['features'][0]['properties']['summary']['duration']
     except Exception as e:
         print("ORS Error:", e)
         return float("inf")
 
+def clean_doc(doc):
+    """Remove MongoDB internal fields like _id and return a clean dict"""
+    doc = dict(doc)
+    doc.pop('_id', None)
+    return doc
 
 def allocate_ambulance_and_hospital():
     data = request.json
+    patient_id = data["patient_id"]
     patient_coords = [data["longitude"], data["latitude"]]
     patient_type = data["type"]
+
+    # Step 0: Fetch full patient info using custom patient_id
+    patient = patient_collection.find_one({"patient_id": patient_id})
+    if not patient:
+        return jsonify({"message": "Patient not found"}), 404
 
     # Step 1: Find nearest hospital
     hospitals = list(hospital_collection.find({}))
@@ -47,7 +58,7 @@ def allocate_ambulance_and_hospital():
 
     hospital_coords = [nearest_hospital["longitude"], nearest_hospital["latitude"]]
 
-    # Step 2: Traverse ambulances and compute ETA logic
+    # Step 2: Find best ambulance
     ambulances = list(ambulance_collection.find({"availability": "free"}))
     selected_ambulance = None
     min_treatment_time = float("inf")
@@ -64,11 +75,11 @@ def allocate_ambulance_and_hospital():
                 treatment_time = to_patient
             else:
                 treatment_time = to_patient + to_hospital
-        else:  # non-critical patient
+        else:
             if amb_type != "critical":
                 treatment_time = to_patient
             else:
-                continue  # skip critical ambulances for non-critical patients
+                continue
 
         if treatment_time < min_treatment_time:
             min_treatment_time = treatment_time
@@ -77,18 +88,38 @@ def allocate_ambulance_and_hospital():
     if not selected_ambulance:
         return jsonify({"message": "No suitable ambulance found"}), 404
 
-    # Step 3: Save request to DB
-    req_doc = {
-        "patient_id": data["patient_id"],
-        "hospital_id": str(nearest_hospital["hospital_id"]),
-        "ambulance_id": str(selected_ambulance["ambulance_id"]),
-        "in_transit": 1
+    # ✅ Step 3: Update ambulance status to busy
+    ambulance_collection.update_one(
+        {"ambulance_id": selected_ambulance["ambulance_id"]},
+        {"$set": {"availability": "busy"}}
+    )
+
+    # ✅ Step 4: Update patient in_transit to 1
+    patient_collection.update_one(
+        {"patient_id": patient["patient_id"]},
+        {"$set": {"in_transit": 1}}
+    )
+
+    # Re-fetch updated patient for clean output
+    updated_patient = patient_collection.find_one({"patient_id": patient["patient_id"]})
+
+    # ✅ Step 5: Save request with full objects (using custom IDs)
+    request_doc = {
+        "patient_id": updated_patient["patient_id"],
+        "hospital_id": nearest_hospital["hospital_id"],
+        "ambulance_id": selected_ambulance["ambulance_id"],
+        "in_transit": 1,
+        "patient": clean_doc(updated_patient),
+        "hospital": clean_doc(nearest_hospital),
+        "ambulance": clean_doc(selected_ambulance)
     }
-    requests_collection.insert_one(req_doc)
+
+    requests_collection.insert_one(request_doc)
 
     return jsonify({
         "message": "Ambulance and hospital allocated",
-        "ambulance_id": str(selected_ambulance["ambulance_id"]),
-        "hospital_id": str(nearest_hospital["hospital_id"]),
-        "eta": round(min_treatment_time / 60, 2)  # in minutes
+        "eta": round(min_treatment_time / 60, 2),  # in minutes
+        "patient": clean_doc(updated_patient),
+        "hospital": clean_doc(nearest_hospital),
+        "ambulance": clean_doc(selected_ambulance)
     }), 200

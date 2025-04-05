@@ -9,6 +9,7 @@ from routes.patient_routes import patient_bp
 from routes.hospital_routes import hospital_bp
 from routes.allocation_routes import allocation_bp
 from routes.alerts_routes import alerts_bp
+from routes.request_routes import request_routes
 
 from dotenv import load_dotenv
 import os
@@ -25,6 +26,7 @@ app.register_blueprint(patient_bp, url_prefix="/api/patient")
 app.register_blueprint(hospital_bp, url_prefix="/api/hospital")
 app.register_blueprint(allocation_bp, url_prefix="/api")
 app.register_blueprint(alerts_bp, url_prefix="/alerts")
+app.register_blueprint(request_routes)
 
 # MongoDB Connection Check
 try:
