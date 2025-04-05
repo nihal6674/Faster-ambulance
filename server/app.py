@@ -7,6 +7,12 @@ from routes.ambulance_routes import ambulance_bp
 from routes.inventory_routes import inventory_bp
 from routes.patient_routes import patient_bp
 from routes.hospital_routes import hospital_bp
+from routes.allocation_routes import allocation_bp
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enables CORS for all routes
@@ -16,6 +22,7 @@ app.register_blueprint(ambulance_bp, url_prefix="/api/ambulance")
 app.register_blueprint(inventory_bp, url_prefix="/api/inventory")
 app.register_blueprint(patient_bp, url_prefix="/api/patient")
 app.register_blueprint(hospital_bp, url_prefix="/api/hospital")
+app.register_blueprint(allocation_bp, url_prefix="/api")
 
 # MongoDB Connection Check
 try:
