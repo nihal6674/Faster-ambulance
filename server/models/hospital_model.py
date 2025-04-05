@@ -34,7 +34,7 @@ class Hospital:
                     "email": hospital["email"],
                     "role": "hospital",
                     "address":hospital["location"],
-            
+                    "hospital_id":hospital["hospital_id"],
                     "latitude":hospital["latitude"],
                     "longitude":hospital["longitude"],
                 }
