@@ -11,6 +11,60 @@ const AmbulanceDashboard = () => {
 
   const [assignment, setAssignment] = useState(null);
 
+
+
+  const sendLocation = () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                
+                const payload = {
+                    ambulance_id: details?.data?.ambulance_id || "P010",
+                    latitude,
+                    longitude
+                };
+                
+                try {
+                    const res = await fetch("http://127.0.0.1:5000/api/ambulance/location", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const data = await res.json();
+                } catch (error) {
+                    console.error("❌ Error sending location:", error);
+                }
+            },
+            (error) => {
+                console.error("❌ Geolocation error:", error.message);
+            }
+        );
+    } else {
+        console.warn("⚠️ Geolocation not supported.");
+    }
+};
+
+
+
+
+useEffect(() => {
+  // Call it once immediately
+  sendLocation();
+
+  // Set interval to call it every 5 minutes (300000 ms)
+  const interval = setInterval(() => {
+    sendLocation();
+  }, 180000); // 3 minutes in milliseconds
+
+  // Clear interval on component unmount
+  return () => clearInterval(interval);
+}, []);
+
   // ✅ Logout handler
   const handleLogout = () => {
     dispatch(logout());
@@ -20,6 +74,7 @@ const AmbulanceDashboard = () => {
 
   // ✅ Fetch assigned request data
   useEffect(() => {
+
     const fetchAssignment = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/requests/ambulance?ambulance_id=${ambulanceId}`);

@@ -21,7 +21,12 @@ class Ambulance:
         data["ambulance_id"] = Ambulance.generate_ambulance_id()
 
         # Automatically set "code" to "non-critical"
-        data["code"] = "non-critical"  
+        data["code"] = "non-critical" 
+        data["availability"] = "free"
+        
+         
+
+         
         
         # Hash password for security
         data["password"] = generate_password_hash(data["password"])
@@ -56,3 +61,20 @@ class Ambulance:
             last_id = int(last_ambulance["ambulance_id"][1:])  # Extract number from "A001"
             return f"A{last_id + 1:03d}"  # Increment & format
         return "A001"  # Default first ID
+    
+
+    @staticmethod
+    def update_location_by_ambulance_id(ambulance_id, latitude, longitude):
+        if not ambulance_id or latitude is None or longitude is None:
+            return {"error": "ambulance_id, latitude, and longitude are required"}
+
+        ambulance = db.ambulances.find_one({"ambulance_id": ambulance_id})
+        if not ambulance:
+            return {"error": "ambulance not found"}
+
+        db.ambulances.update_one(
+            {"ambulance_id": ambulance_id},
+            {"$set":  {"latitude": latitude, "longitude": longitude}}
+        )
+        return {"message": "Location updated successfully"}
+    

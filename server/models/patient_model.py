@@ -15,6 +15,7 @@ class Patient:
             return {"error": "Email already registered"}
 
         data["patient_id"] = Patient.generate_patient_id()
+        data["in_transit"] = 0
         data["password"] = generate_password_hash(data["password"])
         patient_collection.insert_one(data)
 

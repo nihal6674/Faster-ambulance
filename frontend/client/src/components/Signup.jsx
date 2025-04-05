@@ -108,13 +108,7 @@ export default function SignupPage() {
                 required
                 className="w-full border border-gray-300 rounded px-3 py-2"
               />
-              <input
-                name="type"
-                placeholder="Ambulance Type"
-                onChange={handleChange}
-                required
-                className="w-full border border-gray-300 rounded px-3 py-2"
-              />
+             
             </>
           )}
 

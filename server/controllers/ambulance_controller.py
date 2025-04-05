@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from models.ambulance_model import Ambulance
 from config import db
-
+import logging
 
 def register_ambulance():
     """Registers an ambulance."""
@@ -66,3 +66,25 @@ def get_ambulance_inventory():
 
     return jsonify(response), 200
 
+
+
+def update_location():
+    try:
+        data = request.get_json()
+        ambulance_id = data.get('ambulance_id')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        # Validation
+        if not ambulance_id or latitude is None or longitude is None:
+            return jsonify({'error': 'ambulance_id, latitude, and longitude are required'}), 400
+
+        # Call the model function to update location
+        result = Ambulance.update_location_by_ambulance_id(ambulance_id, latitude, longitude)
+
+        # Return result
+        return jsonify(result), (200 if "message" in result else 404)
+
+    except Exception as e:
+        logging.error(f'Location update error: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to update location'}), 500
