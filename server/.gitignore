@@ -28,6 +28,7 @@ env/
 .env/
 ENV/
 env.bak/
+**/.env
 venv.bak/
 pythonenv*
 
