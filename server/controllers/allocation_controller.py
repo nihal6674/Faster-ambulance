@@ -64,7 +64,7 @@ def allocate_ambulance_and_hospital():
     min_treatment_time = float("inf")
 
     for amb in ambulances:
-        amb_type = amb["type"]
+        amb_type = amb["code"]
         amb_coords = [amb["longitude"], amb["latitude"]]
 
         to_patient = get_eta(amb_coords, patient_coords)

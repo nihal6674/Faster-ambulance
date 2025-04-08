@@ -2,6 +2,7 @@ from flask import request, jsonify
 from models.request_model import requests_collection
 from models.ambulance_model import ambulance_collection
 from models.patient_model import patient_collection
+from models.hospital_model import hospital_collection
 from bson import ObjectId
 
 def get_requests_by_hospital(hospital_id):
@@ -30,25 +31,30 @@ def get_patient_allocation():
         if not patient_id:
             return jsonify({"error": "patient_id is required"}), 400
 
-        allocation = request_collection.find_one({"patient_id": patient_id})
+        allocation = requests_collection.find_one({"patient_id": patient_id})
         if not allocation:
             return jsonify({"allocated": False}), 200
 
-        hospital = hospital_collection.find_one({"_id": allocation["hospital_id"]}, {"password": 0})
-        ambulance = ambulance_collection.find_one({"_id": allocation["ambulance_id"]}, {"password": 0})
+        hospital = hospital_collection.find_one({"hospital_id": allocation["hospital_id"]}, {"password": 0})
+        ambulance = ambulance_collection.find_one({"ambulance_id": allocation["ambulance_id"]}, {"password": 0})
+
+        if not hospital or not ambulance:
+            return jsonify({"error": "Hospital or Ambulance not found"}), 500
 
         response = {
             "allocated": True,
             "hospital": {
-                "name": hospital["name"],
-                "location": hospital["location"],
-                "type": hospital["type"]
+                "hospital_id": hospital.get("hospital_id"),
+                "name": hospital.get("name"),
+                "location": hospital.get("location"),
+                "type": hospital.get("type")
             },
             "ambulance": {
-                "code": ambulance["code"],
-                "driver_name": ambulance["driver_name"],
-                "number_plate": ambulance["number_plate"],
-                "type": ambulance["type"]
+                "ambulance_id": hospital.get("ambulance_id"),
+                "code": ambulance.get("code"),
+                "driver_name": ambulance.get("driver_name"),
+                "number_plate": ambulance.get("number_plate"),
+                "type": ambulance.get("type")
             }
         }
 
