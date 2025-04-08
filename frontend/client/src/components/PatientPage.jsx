@@ -34,6 +34,45 @@ export default function PatientPage() {
     //     }
     // }, [details]);
 
+
+
+    const sendLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    
+                    const payload = {
+                        patient_id: details?.data?.patient_id || "P010",
+                        latitude,
+                        longitude
+                    };
+                    console.log("thisis the payload::",payload);
+                    try {
+                        const res = await fetch("http://127.0.0.1:5000/api/patient/location", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(payload),
+                        });
+    
+                        const data = await res.json();
+                        console.log("📍 Location sent:", data);
+                    } catch (error) {
+                        console.error("❌ Error sending location:", error);
+                    }
+                },
+                (error) => {
+                    console.error("❌ Geolocation error:", error.message);
+                }
+            );
+        } else {
+            console.warn("⚠️ Geolocation not supported.");
+        }
+    };
+
     function getSafeMarkdown(text) {
         if (!text || typeof text !== "string") return "**Bot:** ...";
         let safeText = text
@@ -225,7 +264,7 @@ export default function PatientPage() {
                     <p><strong>Email:</strong> {details.data.email}</p>
                     <p><strong>Latitude:</strong> {details.data.latitude}</p>
                     <p><strong>Longitude:</strong> {details.data.longitude}</p>
-                    <p><strong>BloodGroup:</strong> {details.data.bloodGroup}</p>
+                    <p><strong>BloodGroup:</strong> {details.data.blood_group}</p>
                     <button
                         onClick={() => setShowPatientInfo(false)}
                         className="mt-3 text-sm text-red-500 hover:underline"
@@ -237,7 +276,17 @@ export default function PatientPage() {
 
             <div className="flex gap-4">
                 <button
-                    onClick={startRecording}
+                    onClick={
+                        ()=>{
+                            startRecording();
+                            sendLocation();
+
+                        }
+                    
+                    
+                    }
+
+
                     disabled={isRecording}
                     className={`${isRecording ? "bg-red-600" : "bg-red-500"} text-white rounded-full p-6 text-lg font-bold hover:bg-red-600 transition-all duration-300 w-40 h-40 flex items-center justify-center shadow-xl hover:shadow-2xl`}
                 >
@@ -265,6 +314,7 @@ export default function PatientPage() {
                 <button
                     onClick={() => {
                         handleAnalysis(manualInput);
+                        sendLocation();
                         setManualInput("");
                     }}
                     className="mt-2 w-full bg-blue-500 text-white font-bold py-2 rounded-md hover:bg-blue-600 transition"
