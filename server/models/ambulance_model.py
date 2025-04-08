@@ -9,7 +9,7 @@ class Ambulance:
         """Registers a new ambulance with authentication."""
 
         # Required fields check
-        required_fields = ["email", "password", "driver_name", "number_plate", "type"]
+        required_fields = ["email", "password", "driver_name", "number_plate"]
         if not all(field in data for field in required_fields):
             return {"error": "Missing required fields"}
 
@@ -45,7 +45,7 @@ class Ambulance:
                     "driver_name": ambulance["driver_name"],
                     "email": ambulance["email"],
                     "role": "ambulance",
-                    "type":ambulance["type"],
+                    "type":ambulance["code"],
                     "number_plate":ambulance["number_plate"],
                     "ambulance_id":str(ambulance["ambulance_id"]),
                     "latitude":ambulance["latitude"],

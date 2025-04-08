@@ -81,7 +81,7 @@ def delete_inventory_item(ambulance_id, item_id):
                         create_alert({
                             "ambulance_id": ambulance_id,
                             "patient_id": "N/A",
-                            "hospital_id": "H001",
+                            "hospital_id": "H005",
                             "alert_type": "Low Inventory",
                             "alert_message": f"Item '{item_id}' is low on stock (quantity: {new_quantity})",
                             "flag": "warning"

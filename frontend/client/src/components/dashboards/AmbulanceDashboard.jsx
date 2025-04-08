@@ -52,18 +52,18 @@ const AmbulanceDashboard = () => {
 
 
 
-useEffect(() => {
-  // Call it once immediately
-  sendLocation();
+// useEffect(() => {
+//   // Call it once immediately
+//   sendLocation();
 
-  // Set interval to call it every 5 minutes (300000 ms)
-  const interval = setInterval(() => {
-    sendLocation();
-  }, 180000); // 3 minutes in milliseconds
+//   // Set interval to call it every 5 minutes (300000 ms)
+//   const interval = setInterval(() => {
+//     sendLocation();
+//   }, 180000); // 3 minutes in milliseconds
 
-  // Clear interval on component unmount
-  return () => clearInterval(interval);
-}, []);
+//   // Clear interval on component unmount
+//   return () => clearInterval(interval);
+// }, []);
 
   // ✅ Logout handler
   const handleLogout = () => {
