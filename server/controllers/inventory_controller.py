@@ -49,7 +49,7 @@ def get_inventory(ambulance_id):
     
     return jsonify(inventory), 200
 
-def delete_inventory_item(ambulance_id, item_id):
+def delete_inventory_item(ambulance_id, item_id, hospital_id):
     try:
         inventory_doc = inventory_collection.find_one({
             "ambulance_id": ambulance_id,
@@ -81,7 +81,7 @@ def delete_inventory_item(ambulance_id, item_id):
                         create_alert({
                             "ambulance_id": ambulance_id,
                             "patient_id": "N/A",
-                            "hospital_id": "H005",
+                            "hospital_id": hospital_id,
                             "alert_type": "Low Inventory",
                             "alert_message": f"Item '{item_id}' is low on stock (quantity: {new_quantity})",
                             "flag": "warning"

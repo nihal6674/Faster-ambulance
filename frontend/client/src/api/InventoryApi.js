@@ -29,9 +29,9 @@ export const updateInventoryItem = async (ambulanceId, itemId, updatedItem) => {
     }
 };
 
-export const deleteInventoryItem = async (ambulanceId, itemId) => {
+export const deleteInventoryItem = async (ambulanceId, itemId, hospitalId) => {
     try {
-        const response = await axios.delete(`${API_BASE_URL}/${ambulanceId}/delete/${itemId}`);
+        const response = await axios.delete(`${API_BASE_URL}/${ambulanceId}/delete/${itemId}/${hospitalId}`);
         return response.data;
     } catch (error) {
         return { error: error.response?.data?.error || "Failed to delete item" };

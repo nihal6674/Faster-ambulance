@@ -1,58 +1,58 @@
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import axios from "axios";
 import AmbulanceInventory from "./AmbulanceInventory";
 import { logout } from "../../redux/authSlice";
+import {
+  setRequestLoading,
+  setRequestSuccess,
+  setRequestError,
+  clearRequest
+} from "../../redux/requestSlice";
 
 const AmbulanceDashboard = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, details, role } = useSelector((state) => state.auth);
+  const { requestStatus, data: assignment, status: reqState } = useSelector((state) => state.request);
+
   const ambulanceId = details?.data?.ambulance_id;
-
-  const [assignment, setAssignment] = useState(null);
-
-
 
   const sendLocation = () => {
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-                
-                const payload = {
-                    ambulance_id: details?.data?.ambulance_id || "P010",
-                    latitude,
-                    longitude
-                };
-                
-                try {
-                    const res = await fetch("http://127.0.0.1:5000/api/ambulance/location", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(payload),
-                    });
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
 
-                    const data = await res.json();
-                } catch (error) {
-                    console.error("❌ Error sending location:", error);
-                }
-            },
-            (error) => {
-                console.error("❌ Geolocation error:", error.message);
-            }
-        );
+          const payload = {
+            ambulance_id: ambulanceId || "P010",
+            latitude,
+            longitude
+          };
+
+          try {
+            await fetch("http://127.0.0.1:5000/api/ambulance/location", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+          } catch (error) {
+            console.error("❌ Error sending location:", error);
+          }
+        },
+        (error) => {
+          console.error("❌ Geolocation error:", error.message);
+        }
+      );
     } else {
-        console.warn("⚠️ Geolocation not supported.");
+      console.warn("⚠️ Geolocation not supported.");
     }
-};
+  };
 
 
-
-
-// useEffect(() => {
+  // useEffect(() => {
 //   // Call it once immediately
 //   sendLocation();
 
@@ -65,33 +65,41 @@ const AmbulanceDashboard = () => {
 //   return () => clearInterval(interval);
 // }, []);
 
-  // ✅ Logout handler
-  const handleLogout = () => {
-    dispatch(logout());
-    localStorage.clear(); // If you use redux-persist
-    window.location.href = "/login"; // Redirect to login
-  };
-
-  // ✅ Fetch assigned request data
+  // Fetch request/assignment every 5s
   useEffect(() => {
+    
 
     const fetchAssignment = async () => {
+      if (!ambulanceId) return;
+    
       try {
         const res = await axios.get(`http://localhost:5000/requests/ambulance?ambulance_id=${ambulanceId}`);
         if (res.data.status === "busy") {
-          setAssignment(res.data.data);
+          if (JSON.stringify(res.data.data) !== JSON.stringify(assignment)) {
+            dispatch(setRequestSuccess(res.data));
+          }
         } else {
-          setAssignment(null);
+          if (assignment !== null) dispatch(clearRequest());
         }
       } catch (error) {
-        console.error("Error fetching assignment:", error);
+        dispatch(setRequestError(error?.response?.data?.message || "Failed to fetch assignment."));
       }
     };
+    
 
+
+    
     fetchAssignment();
     const interval = setInterval(fetchAssignment, 5000);
     return () => clearInterval(interval);
-  }, [ambulanceId]);
+  }, [ambulanceId, dispatch]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(clearRequest());
+    localStorage.clear();
+    window.location.href = "/login";
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -109,7 +117,9 @@ const AmbulanceDashboard = () => {
       {/* Assignment Info */}
       <div className="mt-6 bg-white shadow-md rounded-lg p-4">
         <h2 className="text-xl font-semibold mb-3">🚨 Current Assignment</h2>
-        {assignment ? (
+        {reqState === "loading" ? (
+          <p>Loading...</p>
+        ) : requestStatus === "busy" ? (
           <div>
             <p><strong>Patient:</strong> {assignment?.patient?.name || "N/A"} ({assignment.patient_id})</p>
             <p><strong>Hospital:</strong> {assignment?.hospital?.name || "N/A"} ({assignment.hospital_id})</p>
@@ -122,7 +132,6 @@ const AmbulanceDashboard = () => {
 
       {/* Inventory */}
       <AmbulanceInventory />
-
     </div>
   );
 };

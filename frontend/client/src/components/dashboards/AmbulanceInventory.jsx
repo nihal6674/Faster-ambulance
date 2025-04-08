@@ -9,12 +9,15 @@ import axios from "axios";
 const AmbulanceInventory = () => {
 
     const { isAuthenticated, details, role } = useSelector((state) => state.auth);
+    const {data} = useSelector((state) => state.request);
 
     // assuming `ambulanceId` is stored as `userId` for now, or adjust as per your backend
-    
+    const hospitalId=data.hospital_id;
     
     const ambulanceId=details.data.ambulance_id;
     console.log(ambulanceId)
+    console.log("HOSPITAL:",hospitalId)
+
     const [inventory, setInventory] = useState([]);
     const [newItem, setNewItem] = useState({ id: "", rfid_id: "", name: "", code: "", type: "", quantity: "" });
     const [message, setMessage] = useState("");
@@ -103,7 +106,7 @@ const AmbulanceInventory = () => {
     };
 
     const handleDeleteItem = async (itemId) => {
-        const response = await deleteInventoryItem(ambulanceId, itemId);
+        const response = await deleteInventoryItem(ambulanceId, itemId, hospitalId);
         if (!response.error) {
             setMessage("✅ Item deleted successfully!");
             fetchInventory();
@@ -172,7 +175,7 @@ const AmbulanceInventory = () => {
                                 return;
                             }
     
-                            const response = await deleteInventoryItem(ambulanceId, id);
+                            const response = await deleteInventoryItem(ambulanceId, id,hospitalId);
     
                             if (!response.error) {
                                 setMessage(`✅ Item ${id} deleted from ambulance ${ambulanceId}`);

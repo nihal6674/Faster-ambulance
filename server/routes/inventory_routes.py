@@ -11,9 +11,9 @@ def add_item(ambulance_id):
 def update_item(ambulance_id, item_id):
     return update_inventory_item(ambulance_id, item_id, request.json)
 
-@inventory_bp.route("/<ambulance_id>/delete/<item_id>", methods=["DELETE"])
-def delete_item(ambulance_id, item_id):
-    return delete_inventory_item(ambulance_id, item_id)
+@inventory_bp.route("/<ambulance_id>/delete/<item_id>/<hospital_id>", methods=["DELETE"])
+def delete_item(ambulance_id, item_id, hospital_id):
+    return delete_inventory_item(ambulance_id, item_id, hospital_id)
 
 @inventory_bp.route("/<ambulance_id>", methods=["GET"])
 def get_items(ambulance_id):
